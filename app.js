@@ -3,7 +3,7 @@
 // Paste your Cesium ion token here (https://ion.cesium.com/tokens).
 // Without a token the app still runs, with offline imagery and no 3D terrain.
 // ============================================================
-const CESIUM_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJub25jZSI6ImswaUhNUDBNSHBwRmJKVzkiLCJqdGkiOiIzZjhkNzBlZi04YmIxLTRlMjMtODY2NS00OGYwNTM4MDM1NzciLCJpZCI6NTQ5NzAyLCJzdWIiOiJqaW5nd2VpemhhbzIzIiwiaXNzIjoiaHR0cHM6Ly9hcGkuY2VzaXVtLmNvbSIsImF1ZCI6IkFuYWxvZyBBdGxhcyAod2ViKSIsImlhdCI6MTc5NDcxNTQ5NX0.YswvxVSwWSLouOiPN5HzURbybhimwNm2AVzAuS5MJFg"; // "Analog Atlas (web)": assets:read, allowed only on analog-atlas.netlify.app + localhost:3000
+const CESIUM_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJub25jZSI6IkZtNTFlN1VQdC1lMjhUSXUiLCJqdGkiOiIzZjhkNzBlZi04YmIxLTRlMjMtODY2NS00OGYwNTM4MDM1NzciLCJpZCI6NTQ5NzAyLCJzdWIiOiJqaW5nd2VpemhhbzIzIiwiaXNzIjoiaHR0cHM6Ly9hcGkuY2VzaXVtLmNvbSIsImF1ZCI6IkFuYWxvZyBBdGxhcyAod2ViKSIsImlhdCI6MTc5NDgwMzkyM30.-zR0LKPxF17ItBhNCHIRrwtVQ9saMwyFOMgcgp-wvpM"; // "Analog Atlas (web)": assets:read, allowed only on analog-atlas.netlify.app + smtesting.netlify.app
 
 
 // ---------- Scoring model (see README "How the score works") ----------
