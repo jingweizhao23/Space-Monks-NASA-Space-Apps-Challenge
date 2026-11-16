@@ -1,0 +1,8 @@
+# Local tooling (Claude Code settings, editors, OS files)
+.claude/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+node_modules/
+.netlify/

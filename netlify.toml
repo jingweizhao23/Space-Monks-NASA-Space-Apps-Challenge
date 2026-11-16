@@ -1,0 +1,5 @@
+# Static site: no build step, publish the repo root.
+# Every push to `main` on GitHub deploys automatically.
+[build]
+  publish = "."
+  command = ""

@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Analog Atlas — find Earth's Moon and Mars twins</title>
+  <meta name="description" content="Find the places on Earth that best match a Moon or Mars landing site, scored on terrain, climate and geology. Built for the NASA Space Apps Challenge 2026 with NASA open data." />
+  <meta name="theme-color" content="#0b0d12" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon-180.png" />
+  <!-- Link previews (Slack, Discord, social). Scrapers need full https:// addresses. -->
+  <link rel="canonical" href="https://analog-atlas.netlify.app/" />
+  <meta property="og:url" content="https://analog-atlas.netlify.app/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Analog Atlas" />
+  <meta property="og:title" content="Analog Atlas — find Earth's Moon and Mars twins" />
+  <meta property="og:description" content="Find the places on Earth that best match a Moon or Mars landing site, scored on terrain, climate and geology. Built for the NASA Space Apps Challenge 2026 with NASA open data." />
+  <meta property="og:image" content="https://analog-atlas.netlify.app/og-image.png?v=2" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Analog Atlas: a globe of Earth sites scored by how closely they match the Moon and Mars." />
+  <script>
+    // apply saved theme before paint
+    try { const t = localStorage.getItem("aa-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.120.0/Build/Cesium/Widgets/widgets.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=65" />
+  <script type="importmap">
+    { "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    } }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/cesium@1.120.0/Build/Cesium/Cesium.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div id="globe"></div>
+  <div id="loading" role="status" aria-live="polite">
+    <div class="loading-card"><span class="spinner" aria-hidden="true"></span><span class="loading-text">Loading globe…</span></div>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- Floating title + toolbar (no full-width bar) -->
+  <div id="brand" class="panel chip">
+    <svg class="logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="6"/><ellipse cx="12" cy="12" rx="10.5" ry="3.8" transform="rotate(-22 12 12)"/><circle cx="20.1" cy="8.3" r="1.5" fill="currentColor" stroke="none"/></svg>
+    <h1>Analog Atlas</h1>
+    <span class="sub">— find Earth's Moon and Mars twins</span>
+    <a class="event-tag" href="https://www.spaceappschallenge.org/" target="_blank" rel="noopener">NASA Space Apps Challenge 2026</a>
+  </div>
+
+  <div id="toolbar" class="panel chip">
+    <div class="seg" role="group" aria-label="Show or hide panels">
+      <button data-panel="left" aria-pressed="true" title="Show/hide the controls"><span class="chk"></span><span class="lbl-txt">Controls</span></button>
+      <button data-panel="drawer" aria-pressed="true" title="Show/hide the rankings"><span class="chk"></span><span class="lbl-txt">Rankings</span></button>
+      <button data-panel="right" aria-pressed="true" title="Show/hide site details"><span class="chk"></span><span class="lbl-txt">Details</span></button>
+      <button data-panel="region" aria-pressed="true" title="Show/hide the 3D view"><span class="chk"></span><span class="lbl-txt">3D view</span></button>
+    </div>
+    <button id="shareBtn" class="icon-btn" aria-label="Copy a link to this view" title="Copy a link to this view">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3.2-3.2a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3.2 3.2a4.5 4.5 0 0 0 6.4 6.4l1-1"/></svg>
+    </button>
+    <button id="helpBtn" class="icon-btn" aria-label="How this works" title="How this works">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M9.3 9.2a2.8 2.8 0 0 1 5.4 1c0 1.9-2.7 2.4-2.7 4.1"/><circle cx="12" cy="17.6" r=".6" fill="currentColor"/></svg>
+    </button>
+    <button id="themeToggle" class="icon-btn" aria-label="Switch light/dark theme" title="Switch light/dark theme">
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    </button>
+  </div>
+
+
+  <!-- Left column: controls on top, rankings below -->
+  <div id="leftCol" class="col">
+    <aside id="left" class="panel">
+      <div id="leftScroll">
+      <div class="lbl" id="targetLbl"><span class="step" aria-hidden="true">1</span>Pick a place on the Moon or Mars</div>
+      <div class="dd" id="targetDD">
+        <button id="targetBtn" class="dd-btn" type="button" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="targetLbl targetBtn">
+          <span class="dd-val"></span>
+          <svg class="dd-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <ul id="targetList" class="dd-list" role="listbox" aria-labelledby="targetLbl" tabindex="-1" hidden></ul>
+      </div>
+      <div id="targetMeta" class="meta"></div>
+
+      <div class="lbl"><span class="step" aria-hidden="true">2</span>What do you want to test there?</div>
+      <div id="presets" class="presets"></div>
+      <div id="presetHint" class="meta"></div>
+
+      <section class="weights" aria-labelledby="wTitle">
+        <div class="lbl weights-head"><span class="step" aria-hidden="true">3</span><span id="wTitle">Fine-tune the weights</span>
+          <span id="wState" class="w-state"></span><button id="wReset" class="link-btn" type="button" hidden>Reset</button></div>
+        <div class="meta">Drag right to make a feature count more. The percentage is its share of the score; the tick marks the default.</div>
+        <div id="sliders" class="sliders"></div>
+      </section>
+
+      <div class="legend">
+        <div class="lbl">Match score on the globe</div>
+        <div class="ramp"></div>
+        <div class="ramp-labels"><span>weaker match</span><span>stronger match</span></div>
+        <div class="legend-row"><span class="lg"><span class="dot ring"></span>Already used by space agencies</span><span class="lg"><span class="dot"></span>New idea</span><span class="lg"><span class="dot fail"></span>Fails a filter</span></div>
+      </div>
+
+      <div class="credits">
+        <div class="credits-title">Built on NASA open data</div>
+        <a href="https://power.larc.nasa.gov/" target="_blank" rel="noopener">NASA POWER</a> climate ·
+        <a href="https://cesium.com/platform/cesium-ion/content/cesium-world-terrain/" target="_blank" rel="noopener">Cesium World Terrain</a> slopes ·
+        <a href="https://macrostrat.org/" target="_blank" rel="noopener">Macrostrat</a> geologic maps ·
+        <a href="https://science.nasa.gov/mission/lro/" target="_blank" rel="noopener">LRO</a> (<a href="https://pds-geosciences.wustl.edu/missions/lro/lola.htm" target="_blank" rel="noopener">LOLA</a>, <a href="https://www.diviner.ucla.edu/" target="_blank" rel="noopener">Diviner</a>) ·
+        <a href="https://science.nasa.gov/mission/mars-reconnaissance-orbiter/" target="_blank" rel="noopener">MRO</a> (<a href="http://crism.jhuapl.edu/" target="_blank" rel="noopener">CRISM</a>) ·
+        <a href="https://science.nasa.gov/mission/odyssey/" target="_blank" rel="noopener">Mars Odyssey</a> (<a href="https://themis.asu.edu/" target="_blank" rel="noopener">THEMIS</a>) ·
+        <a href="https://science.nasa.gov/mission/mars-global-surveyor/" target="_blank" rel="noopener">MGS</a> (MOLA, TES)
+        <div class="credits-note">A <a href="https://www.spaceappschallenge.org/" target="_blank" rel="noopener">Space Apps Challenge</a> project, not an official NASA product. <button id="creditsLink" class="link-btn" type="button">Full credits</button></div>
+      </div>
+      </div>
+    </aside>
+
+    <section id="drawer" class="panel">
+      <div class="tabs">
+        <button class="tab active" data-tab="top" title="Every place, best match first">Top matches</button>
+        <button class="tab" data-tab="validation" title="Places space agencies already use — they should score well">Reality check</button>
+        <button class="tab" data-tab="candidates" title="Best-matching places nobody has used yet">New ideas</button>
+      </div>
+      <div id="drawerSummary" class="drawer-summary"></div>
+      <div id="drawerBody"></div>
+    </section>
+  </div>
+
+  <!-- Right column: details on top, 3D region below -->
+  <div id="rightCol" class="col">
+    <aside id="right" class="panel">
+      <div id="siteDetail">
+        <div class="empty">
+          <div class="empty-title">No site selected</div>
+          Click any dot on the globe, or a row in the rankings, to see how well that place matches.
+        </div>
+      </div>
+    </aside>
+
+    <section id="region" class="panel">
+      <div class="region-head">
+        <div>
+          <div class="region-title">3D view of the area</div>
+          <div id="regionSub" class="muted small">Select a site to load its terrain</div>
+        </div>
+        <div class="seg seg-sm" id="spanSeg" role="group" aria-label="Area size">
+          <button data-span="4">4 km</button><button data-span="12" aria-pressed="true">12 km</button><button data-span="30">30 km</button>
+        </div>
+      </div>
+      <div id="regionCanvas">
+        <div class="region-empty">Click a place on the globe to see its land in 3D</div>
+        <div id="regionStatus" class="region-status"></div>
+        <div id="regionScale" class="region-scale"></div>
+      </div>
+      <div class="whatif">
+        <div class="whatif-head">
+          <span>What if this place were different?</span>
+          <span id="whatifScore" class="whatif-score"></span>
+        </div>
+        <div id="whatifSliders"></div>
+        <div class="whatif-actions">
+          <button id="wiReset" class="btn" aria-pressed="false">Reset to real values</button>
+          <button id="wiTarget" class="btn" aria-pressed="false">Make it like the target</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Help -->
+  <div id="help" class="modal" hidden>
+    <div class="modal-card panel" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+      <button id="helpClose" class="close" aria-label="Close help">×</button>
+      <div class="modal-body">
+      <h2 id="helpTitle">How Analog Atlas works</h2>
+      <p class="lead">Before astronauts and robots go to the Moon or Mars, teams practise on Earth in places that look and feel similar. These places are called <b>analogs</b>. Analog Atlas helps you find the best one for a job.</p>
+
+      <h4>Using it in four steps</h4>
+      <ol>
+        <li><b>Pick a target</b> on the Moon or Mars in the top-left box.</li>
+        <li><b>Pick what you want to test</b>: landing, rover driving, finding resources, living there, or spacewalk practice. Each one has its own rules and weights.</li>
+        <li><b>See the best match.</b> It's starred at the top of the <b>Top matches</b> list (bottom left), and a pulsing gold ring marks it on the globe. Every other dot is a place on Earth: brighter yellow means a closer match, and a white ring means space agencies already use it.</li>
+        <li><b>Click a dot</b> to fly there and see its details, the reasons it matches, and a 3D model of the area.</li>
+      </ol>
+
+      <h4>The match score (0–100)</h4>
+      <p>Each purpose works in three steps. <b>1. Filters:</b> some purposes have hard NASA limits, for example a lander needs ground under 10° (Moon) or 5° (Mars). A place that fails gets no score and shows as a grey dot. <b>2. Feature matches:</b> each feature gets a 0–1 match. Numbers score by how close they are (1 − difference ÷ tolerance); categories score 1 for the same type, 0.5 for a related type, 0 otherwise. <b>3. Weighted total:</b> the matches are added using that purpose's weights, out of 100.</p>
+      <p>Some Moon and Mars values are beyond anything on Earth (no Earth place swings 200 °C between day and night, or stays sunlit 86% of the year). For those, we score against Earth's own range: the Earth places closest to the target score highest. Those values are tagged <span class="approx">off-Earth</span>.</p>
+      <p>The colours on the globe are stretched across the current scores, so they always show which places are relatively better.</p>
+      <div id="helpFactors" class="help-factors"></div>
+
+      <h4>The rankings (bottom left)</h4>
+      <p><b>Top matches</b> ranks every place and says in plain words why #1 wins. <b>New ideas</b> lists the best places nobody uses yet. <b>Reality check</b> runs two tests on our own score. First: places that space agencies really use for this purpose (★) should rank high; where they don't, we say why. Second: we move each weight by ±25% and count how many of the top 10 stay the same, to show the answer doesn't hinge on our exact weights.</p>
+
+      <h4>The 3D view (bottom right)</h4>
+      <p>This shows the real shape of the land around the site, using elevation data from the globe (Cesium World Terrain, mostly ~30 m satellite elevation models), with heights stretched so the relief is easy to see; the label says by how much. The dashed square is the 2 km box the steepness and roughness numbers are measured in. The ground colours, frost, ice and dust are illustrations of the feature values, not satellite imagery. Drag to spin it and scroll to zoom. The sliders below it let you ask "what if": change one feature, such as steeper ground, more ground ice or a bigger temperature swing, and watch the land and the match score change. <b>Make it like the target</b> shows what the place would need to become.</p>
+
+      <h4>Moving around the globe</h4>
+      <p><kbd>Scroll</kbd> to zoom, <kbd>left-drag</kbd> to move, <kbd>right-drag</kbd> to tilt and rotate. The buttons at the top right show or hide each panel and switch between light and dark mode.</p>
+
+      <h4>Where the data comes from</h4>
+      <p><b>Earth, measured (500 places):</b> steepness, share of gentle ground and roughness come from Cesium World Terrain, sampled every 100 m over a 2 km box around each point. Temperatures, temperature swings, wind and cloudiness come from NASA POWER (2001–2025 averages, ~50 km cells). POWER gives the temperature at each cell's average height, so we adjust it to the site's own height (−6.5 °C per km); without this a mountain top like Mauna Kea would read 21 °C instead of about −2 °C. Illumination = daylight hours for the latitude × sunlight getting through clouds.</p>
+      <p><b>Earth, from geologic maps</b> (tagged <span class="approx map">map</span>): the rock type at each point is read from published geologic maps through the Macrostrat map service (29 maps, from USGS state maps to the Geological Map of Africa). Where a map names a specific rock we use it directly and work out the likely minerals from it. Where the map is only broad (for example "sedimentary"), we keep our regional class if it is in the same rock family (<span class="approx map">map ✓</span>). Our first regional guesses agreed with the maps at family level about 74% of the time.</p>
+      <p><b>Earth, estimated</b> (tagged <span class="approx">est.</span>): surface material (loose / mixed / bedrock) for most points, minerals where the map is too broad, and ground ice, which is estimated from mean air temperature. Next step: NASA EMIT minerals and ESA Permafrost CCI.</p>
+      <p><b>Moon and Mars targets:</b> values from published mission results (LRO Diviner and LOLA, Perseverance MEDA, MRO CRISM, SWIM ice maps). Hover a target value in the details table to see its source. Several are estimates and are marked as such in <code>data/targets.json</code>.</p>
+      <p>The <b>live check</b> box calls NASA POWER again each time you click a site, so you can confirm the stored numbers.</p>
+
+      <h4>What no place on Earth can copy</h4>
+      <p>Lower gravity, airless or thin-air conditions, space radiation and, on Mars, toxic soil. Every site lists these so nobody mistakes a good analog for the real thing.</p>
+
+      <h4 id="credits">Credits</h4>
+      <p>Built for the <a href="https://www.spaceappschallenge.org/" target="_blank" rel="noopener">NASA Space Apps Challenge 2026</a>. Analog Atlas is a student/community project and is not an official NASA product or endorsed by NASA.</p>
+      <ul class="credit-list">
+        <li><b>Earth climate:</b> <a href="https://power.larc.nasa.gov/" target="_blank" rel="noopener">NASA POWER</a> (NASA Langley Research Center), climatology API 2001–2025: T2M, T2M_RANGE, TS_RANGE, WS10M, ALLSKY/CLRSKY_SFC_SW_DWN. Temperatures adjusted to site height with the standard lapse rate, 6.5 °C/km.</li>
+        <li><b>Earth geology:</b> <a href="https://macrostrat.org/" target="_blank" rel="noopener">Macrostrat</a> geologic map service (<a href="https://doi.org/10.1029/2018GC007467" target="_blank" rel="noopener">Peters et al. 2018</a>), serving maps from USGS, Geoscience Australia, CGMW/BRGM, the Geological Survey of Canada and others.</li>
+        <li><b>Earth terrain:</b> <a href="https://cesium.com/platform/cesium-ion/content/cesium-world-terrain/" target="_blank" rel="noopener">Cesium World Terrain</a> (Cesium ion), sampled at 100 m.</li>
+        <li><b>Mars ice &amp; landing sites:</b> <a href="https://swim.psi.edu/" target="_blank" rel="noopener">SWIM</a> (Subsurface Water Ice Mapping, PSI / NASA JPL); Perseverance MEDA (<a href="https://doi.org/10.1038/s41561-022-01084-0" target="_blank" rel="noopener">Rodríguez-Manfredi et al. 2023</a>).</li>
+        <li><b>Moon illumination &amp; temperature:</b> <a href="https://doi.org/10.1016/j.icarus.2010.03.028" target="_blank" rel="noopener">Bussey et al. 2010</a>; <a href="https://doi.org/10.1016/j.icarus.2010.10.030" target="_blank" rel="noopener">Mazarico et al. 2011</a>; <a href="https://doi.org/10.1016/j.icarus.2016.08.012" target="_blank" rel="noopener">Williams et al. 2017</a> (LRO Diviner); <a href="https://astrogeology.usgs.gov/search/map/unified_geologic_map_of_the_moon_1_5m_2020" target="_blank" rel="noopener">USGS Unified Geologic Map of the Moon (2020)</a>.</li>
+        <li><b>Moon:</b> NASA <a href="https://science.nasa.gov/mission/lro/" target="_blank" rel="noopener">Lunar Reconnaissance Orbiter</a> (<a href="https://pds-geosciences.wustl.edu/missions/lro/lola.htm" target="_blank" rel="noopener">LOLA</a>, <a href="https://www.diviner.ucla.edu/" target="_blank" rel="noopener">Diviner</a>); <a href="https://www.jpl.nasa.gov/missions/moon-mineralogy-mapper-m3/" target="_blank" rel="noopener">Moon Mineralogy Mapper</a> (M3, NASA instrument on ISRO's Chandrayaan-1).</li>
+        <li><b>Mars:</b> NASA <a href="https://science.nasa.gov/mission/mars-reconnaissance-orbiter/" target="_blank" rel="noopener">Mars Reconnaissance Orbiter</a> (<a href="http://crism.jhuapl.edu/" target="_blank" rel="noopener">CRISM</a>), <a href="https://science.nasa.gov/mission/odyssey/" target="_blank" rel="noopener">Mars Odyssey</a> (<a href="https://themis.asu.edu/" target="_blank" rel="noopener">THEMIS</a>), <a href="https://science.nasa.gov/mission/mars-global-surveyor/" target="_blank" rel="noopener">Mars Global Surveyor</a> (MOLA, TES); <a href="https://www-mars.lmd.jussieu.fr/" target="_blank" rel="noopener">Mars Climate Database</a> (LMD / ESA / CNES).</li>
+        <li><b>Engineering limits used as filters:</b> <a href="https://ntrs.nasa.gov/api/citations/20240009596/downloads/ArtemisHLSUpdate_2024.pdf" target="_blank" rel="noopener">NASA Artemis HLS update 2024</a> (landing &lt; 10° over 100 m, EVA &lt; 20° over 2 km); <a href="https://science.nasa.gov/mission/viper/lunar-operations/" target="_blank" rel="noopener">NASA VIPER</a> (15° slopes); <a href="https://ntrs.nasa.gov/api/citations/20160002370/downloads/20160002370.pdf" target="_blank" rel="noopener">NASA human Mars landing sites, 2016</a> (±50° latitude, below +2 km); <a href="https://marsoweb.nas.nasa.gov/landingsites/msl/memoranda/MSL_Eng_User_Guide_v2.pdf" target="_blank" rel="noopener">MSL engineering guide</a> (≤ 3° over 2–5 km).</li>
+        <li><b>Globe, terrain &amp; imagery:</b> <a href="https://cesium.com/platform/cesiumjs/" target="_blank" rel="noopener">CesiumJS</a>, Cesium World Terrain and Bing Maps imagery via <a href="https://cesium.com/platform/cesium-ion/" target="_blank" rel="noopener">Cesium ion</a>; offline map: <a href="https://www.naturalearthdata.com/downloads/10m-raster-data/10m-natural-earth-2/" target="_blank" rel="noopener">Natural Earth II</a>.</li>
+        <li><b>3D view &amp; charts:</b> <a href="https://threejs.org/" target="_blank" rel="noopener">Three.js</a> and <a href="https://www.chartjs.org/" target="_blank" rel="noopener">Chart.js</a>.</li>
+        <li><b>Design:</b> <a href="https://fonts.google.com/specimen/Inter" target="_blank" rel="noopener">Inter</a> and <a href="https://fonts.google.com/specimen/JetBrains+Mono" target="_blank" rel="noopener">JetBrains Mono</a> fonts (Google Fonts); <a href="https://bids.github.io/colormap/" target="_blank" rel="noopener">viridis colour scale</a> (van der Walt &amp; Smith).</li>
+      </ul>
+      <p class="muted">Values tagged <span class="approx">est.</span> are estimates, not measurements.</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=65"></script>
+  <script type="module" src="region3d.js?v=65"></script>
+</body>
+</html>
